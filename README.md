@@ -8,6 +8,8 @@
 
 > 仓库：<https://github.com/Amaterasu-kura/research-union-workbench>
 > 当前状态：Phase 1 核心闭环已完成（AI 对话需配置云端模型 Key）。
+>
+> **快速开始**：`cp .env.example .env` → `make install && make services && make migrate && make seed` → 三个终端分别运行 `make backend`、`make worker`、`make frontend` → 打开 <http://localhost:3000>。
 
 面向高校研究生会的 AI 协同工作台：把活动想法、历史资料、项目对话、策划文件、任务分工与执行经验放在同一个系统里，让每次活动都成为组织可以继续使用的资产。
 
