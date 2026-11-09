@@ -1,0 +1,1182 @@
+# 研究生会 AI 协同工作台
+## Demo 开发需求说明书
+
+版本：V1.0  
+用途：交由 AI Coding Agent 进行项目初始化、架构设计与 Demo 开发  
+部署目标：Mac mini M4（16GB 统一内存）  
+产品形态：Web 工作台优先，预留移动端 APP 接口
+
+---
+
+# 一、项目定位与建设目标
+
+## 1.1 项目定位
+
+建设一个面向研究生会日常工作的 AI 协同工作台。
+
+它不是简单的 AI 聊天机器人，也不是单纯的知识库或任务管理软件，而是将以下能力整合到同一个系统中：
+
+1. AI 对话与智能工作流
+2. 历史资料管理与知识积累
+3. 活动项目管理
+4. 活动策划案撰写、修改与审核
+5. 任务拆分、分配与进度管理
+6. 多人协同与组织管理
+7. 活动经验自动提取和持续学习
+
+核心目标：
+
+让研究生会成员能够通过自然语言与 AI 协作完成活动筹备、策划、执行和总结，并使每次活动产生的经验成为组织长期积累的知识资产。
+
+## 1.2 核心业务闭环
+
+系统必须逐步实现以下完整流程：
+
+成员登录系统
+→ 通过 AI 对话提出活动想法
+→ Agent 识别活动信息
+→ 检索历史活动资料
+→ 形成活动策划思路
+→ 负责人确认创建项目
+→ Agent 生成策划案
+→ 多人通过对话协作修改方案
+→ Agent 拆分执行任务
+→ 负责人确认任务分配
+→ 成员执行任务并更新状态
+→ 活动结束后上传总结
+→ Agent 提取可复用经验
+→ 负责人确认并归档
+→ 新活动继续调用这些经验
+
+Demo 的首要任务是打通这一闭环的核心部分，而不是一次实现所有高级功能。
+
+---
+
+# 二、用户角色与权限设计
+
+## 2.1 用户身份
+
+系统包含三种组织身份：
+
+| 身份 | 主要职责 |
+|---|---|
+| 主席团 | 全局统筹、跨部门活动管理、系统级管理 |
+| 部门负责人 | 部门活动管理、项目统筹、任务分配、方案确认 |
+| 普通部员 | 参与项目、使用 AI、上传资料、执行任务 |
+
+每个成员拥有独立账号。
+
+用户可以关联一个或多个部门。部门归属主要用于组织管理、人员推荐和资料分类，不用于限制跨部门知识访问。
+
+## 2.2 权限原则
+
+采用简单的 RBAC（基于角色的访问控制），不设计复杂的项目内权限体系。
+
+基本规则：
+
+- 主席团拥有全局管理权限。
+- 部门负责人可以管理所属部门的活动和项目。
+- 普通成员可以参与项目、查看项目资料、参与对话、上传文件和执行任务。
+- 主席团和授权部门负责人可以管理固定工作流提示词、确认正式策划案和统筹项目。
+- 普通成员可以提出创建项目的需求，但不能未经确认直接创建正式项目。
+- 普通成员可以申请加入项目，负责人或主席团同意后加入。
+- 项目内不设置复杂的组长、执行组长等角色。
+- 任务负责人通过任务分配关系确定，不额外形成项目管理权限。
+
+## 2.3 项目成员管理
+
+项目成员由负责人或主席团统筹。
+
+普通成员可以申请加入项目，经确认后加入。
+
+项目成员表建议：
+
+- id
+- project_id
+- user_id
+- joined_by
+- joined_at
+- status
+
+不设置 project_role 或 project_permission。
+
+---
+
+# 三、整体产品功能模块
+
+## 3.1 AI 对话工作台
+
+这是系统的主要交互入口。
+
+桌面端建议采用三栏布局：
+
+左侧：系统导航
+- AI 对话
+- 活动项目
+- 任务中心
+- 文件中心
+- 知识库
+- 组织管理
+- 系统设置
+
+中间：AI 对话区域
+- 消息展示
+- 文本输入
+- 文件上传
+- Agent 执行状态
+- 工具调用反馈
+- 生成文件和下载入口
+
+右侧：上下文面板
+- 当前项目
+- 关联文件
+- 相关任务
+- 项目进度
+- 相关历史经验
+
+全局对话和项目内对话必须区分。
+
+全局对话用于：
+- 提出新活动想法
+- 日常咨询
+- 跨项目讨论
+- 不属于特定项目的工作
+
+项目内对话用于：
+- 活动策划
+- 方案修改
+- 任务讨论
+- 宣传安排
+- 现场执行
+- 活动总结
+
+## 3.2 活动项目管理
+
+采用 EventSeries + Project 两层结构。
+
+EventSeries 表示活动系列，例如：
+- 科技论文报告会
+- 研究生迎新活动
+- 研究生学术论坛
+
+Project 表示某一年度的具体活动，例如：
+- 2025 年科技论文报告会
+- 2026 年科技论文报告会
+- 2027 年科技论文报告会
+
+同一活动系列下的不同年度项目相互关联，但独立保存。
+
+每个项目集中关联：
+- 项目成员
+- 项目对话
+- 项目文件
+- 项目任务
+- 历史经验
+- Agent 执行记录
+
+### 项目创建流程
+
+任何成员都可以通过 AI 对话提出创建项目的需求。
+
+Agent 负责：
+1. 识别活动名称、类型、部门、时间等信息。
+2. 检索历史活动资料。
+3. 整理历史活动经验。
+4. 形成简版策划思路。
+5. 向用户展示创建建议。
+
+只有主席团或部门负责人确认后，系统才正式创建项目。
+
+### 项目状态
+
+项目采用四个状态：
+
+1. 筹备中：策划、准备、任务拆分。
+2. 执行中：活动正式进入执行阶段。
+3. 已结束：活动执行完成，进入总结阶段。
+4. 已归档：总结和经验归档完成。
+
+项目结束后，Agent 协助整理总结和提取经验，负责人确认后归档。
+
+已归档项目仍然可以检索和引用。正式策划案、总结和成果文件长期保留。
+
+## 3.3 项目对话管理
+
+一个项目允许拥有多个独立对话，并设置一个默认主对话。
+
+例如：
+
+2027 年科技论文报告会：
+- 主对话
+- 策划案修改
+- 宣传工作
+- 会场安排
+- 现场执行
+- 活动总结
+
+每个对话拥有独立标题、消息记录和创建者。
+
+所有项目内对话共享项目级上下文，包括：
+- 项目文件
+- 项目任务
+- 项目基本信息
+- 已确认的项目决策
+- 相关历史经验
+
+### 对话可见范围
+
+- 项目成员可以查看项目内所有对话。
+- 项目成员可以继续其他成员创建的项目对话。
+- 全局私人对话默认仅创建者本人可见。
+- 全局对话涉及具体项目时，Agent 可以建议关联，经确认后关联。
+
+### 对话管理权限
+
+| 操作 | 权限 |
+|---|---|
+| 创建对话 | 全体项目成员 |
+| 查看对话 | 全体项目成员 |
+| 继续讨论 | 全体项目成员 |
+| 修改标题 | 创建者、负责人 |
+| 删除对话 | 负责人、主席团 |
+| 删除单条历史消息 | 不开放普通成员直接删除 |
+
+删除优先采用软删除或归档，避免重要讨论和决策依据丢失。
+
+### 跨对话信息共享
+
+建议采用以下机制：
+
+1. 项目资料共享：所有项目对话都能检索项目文件和任务。
+2. 跨对话检索：Agent 可以检索同一项目其他对话的相关讨论。
+3. 重要决策沉淀：Agent 识别项目讨论中的重要决定，形成项目级信息。
+4. 决策确认：未经确认的讨论不能直接视为最终决定。
+5. 按需检索：不把全部历史对话一次性传给模型，而是检索相关内容后构建上下文。
+
+## 3.4 知识库管理
+
+知识库是系统的长期核心资产。
+
+已有历史资料已经初步按照部门分类，系统需要支持历史文件批量导入，而不是要求用户重新整理。
+
+### 知识来源
+
+- 历史活动策划案
+- 活动总结
+- 活动赛制和规则
+- 讲座资料
+- 宣传材料
+- 日常工作经验
+- Agent 从对话中提取的经验
+- 活动结束后形成的新总结
+
+### 知识分类
+
+Agent 自动识别：
+- 所属部门
+- 活动系列
+- 活动年份
+- 文件类型
+- 主题
+- 适用场景
+
+允许一份资料同时关联多个部门或多个活动。
+
+知识资料跨部门共享，不做部门知识访问隔离。
+
+### 知识分层
+
+第一层：原始资料层
+保存上传的 Word、PDF、图片等原始文件。
+
+第二层：结构化知识层
+保存从资料中提取的：
+- 实际经验
+- 执行方法
+- 注意事项
+- 风险
+- 可复用规则
+- 活动决策
+- 经验适用范围
+
+第三层：检索索引层
+保存文档分块、Embedding 和关键词索引，用于 RAG 检索。
+
+### 自动知识提取规则
+
+Agent 应主动识别对未来工作有价值的信息。
+
+不要求用户每次都说“请记住这条”。
+
+知识需要区分：
+- 已确认事实
+- 实际执行经验
+- 一般建议
+- 模型推测
+
+保留知识来源、形成时间、适用范围和确认状态。
+
+新知识不直接覆盖旧知识，而是建立补充、修正或关联关系。
+
+重大规则应由负责人确认。
+
+## 3.5 文件管理与文档协作
+
+支持：
+- Word
+- PDF
+- 图片
+
+后续预留 Excel 和 PPT。
+
+### 文件操作
+
+1. 网页上传文件。
+2. 后端保存原始文件。
+3. Agent/解析模块读取内容。
+4. 提取文本、标题、表格等信息。
+5. 识别文件归属。
+6. 关联项目和知识库。
+7. 生成处理状态反馈。
+
+### 文档编辑模式
+
+模式 A：参考旧文件重新生成新文档。
+
+模式 B：基于现有 Word 文档进行局部修改，尽量保留原格式。
+
+不覆盖原始文件，每次修改生成新版本。
+
+支持：
+- 多人提交修改意见
+- Agent 汇总不同成员的意见
+- Agent 合并文档修改
+- 生成新的干净版本
+- 负责人确认正式版本
+
+正式策划案必须保留版本历史和审核状态。
+
+### 文件清理
+
+- 原始资料和正式成果长期保留。
+- 临时过程文件默认 30 天后清理。
+- 被项目、知识库或其他记录引用的文件不可直接清理。
+- 删除文件前检查引用关系。
+
+## 3.6 任务管理
+
+任务可以从策划案中自动拆分，也可以在活动执行过程中随时通过自然语言添加。
+
+### 任务生成
+
+例如负责人说：
+
+“把这个活动的准备工作拆分成任务，分给各部门成员。”
+
+Agent 根据：
+- 任务类型
+- 历史活动经验
+- 成员当前任务情况
+- 部门归属
+- 工作量和优先级
+
+推荐任务分配。
+
+Agent 可以尽量让成员承担不同类型的工作，但不要设置僵硬的固定规则。
+
+任务默认由负责人确认后发布。
+
+### 任务卡片
+
+任务卡片正面只显示：
+
+- 任务标题
+- 优先级
+- 截止时间
+- 负责人
+- 当前状态
+
+关联文件和详细说明放在任务详情页。
+
+### 任务状态
+
+- 待开始
+- 进行中
+- 已完成
+
+### 任务优先级
+
+由 Agent 综合任务重要性、依赖关系、截止时间和历史经验判断。
+
+默认按照优先级排序，不简单按照时间排序。
+
+### 任务交换
+
+成员可以向另一名成员发起任务交换。
+
+对方接受后，系统交换双方任务负责人。
+
+任务交换不需要负责人额外审批，但必须记录：
+- 发起人
+- 接收人
+- 原负责人
+- 新负责人
+- 交换时间
+- 交换结果
+
+双方同意后更新任务分配，并通知相关负责人。
+
+### 任务视图
+
+普通成员：
+- 我的任务
+- 我参与的活动
+- 我的相关对话
+
+部门负责人：
+- 我的任务
+- 部门任务
+- 活动项目进度
+- 项目对话
+
+主席团：
+- 全局任务
+- 各部门进度
+- 跨部门活动
+- 全局项目状态
+
+---
+
+# 四、Agent 系统架构
+
+## 4.1 总体设计
+
+采用主 Agent Router + 多个 Worker 的结构。
+
+主 Agent 不是包揽所有工作的超级 Agent。
+
+主 Agent 负责：
+- 接收用户消息
+- 理解用户意图
+- 识别当前上下文
+- 选择合适的 Worker
+- 分发任务
+- 收集 Worker 执行结果
+- 汇总结果并回复用户
+
+Worker 负责具体业务执行。
+
+### Worker 初步划分
+
+1. Knowledge Worker
+   - 历史资料检索
+   - 资料分类
+   - 知识提取
+   - 知识归档
+
+2. Planning Worker
+   - 活动策划分析
+   - 活动方案生成
+   - 风险识别
+   - 历史方案对比
+
+3. Document Worker
+   - Word/PDF 解析
+   - 文档生成
+   - 局部修改
+   - 版本合并
+
+4. Task Worker
+   - 任务拆分
+   - 优先级判断
+   - 人员分配建议
+   - 任务变更和交换
+
+Worker 不需要过度细分，允许根据实际业务合并或扩展。
+
+## 4.2 Agent 执行机制
+
+每次复杂任务建立 AgentRun。
+
+记录：
+- AgentRun ID
+- 用户 ID
+- 对话 ID
+- 项目 ID
+- Worker 类型
+- 执行状态
+- 开始时间和结束时间
+- 工具调用记录
+- Token 使用量
+- 失败原因
+- 人工确认点
+- 最终结果
+
+Worker 完成工作后，将结构化结果返回主 Agent，再由主 Agent 返回用户。
+
+## 4.3 工具调用
+
+Agent 不应只在聊天中声称完成操作。
+
+所有真实业务操作必须通过后端 API 执行。
+
+例如：
+- 创建项目
+- 上传文件
+- 生成文档
+- 创建任务
+- 修改任务负责人
+- 更新项目状态
+- 写入知识库
+
+必须由业务服务验证用户权限，再执行数据库操作。
+
+## 4.4 工作流与提示词
+
+固定工作流提示词在系统中统一管理。
+
+包括：
+- 活动策划工作流
+- 活动风险审核工作流
+- 文档修改工作流
+- 任务拆分工作流
+- 知识提取工作流
+
+提示词应支持：
+- 版本管理
+- 修改记录
+- 测试
+- 发布
+- 回滚
+
+只有主席团管理员和授权部门负责人可以管理正式工作流。
+
+## 4.5 LLM Gateway
+
+统一管理云端模型调用。
+
+负责：
+- API Key 管理
+- 模型选择
+- 请求发送
+- 超时
+- 重试
+- Token 统计
+- 费用统计
+- 模型切换
+
+首版只需要接入一个可靠的大模型 API 和一个 Embedding API。
+
+预留多模型接口。
+
+---
+
+# 五、推荐技术栈
+
+考虑 Mac mini M4、16GB 统一内存，建议采用轻量化模块化单体架构。
+
+| 层级 | 推荐技术 | 用途 |
+|---|---|---|
+| Web 前端 | Next.js + TypeScript | 桌面工作台 |
+| UI | Tailwind CSS + shadcn/ui | 界面组件 |
+| 移动 APP | React Native + Expo | 后续移动端 |
+| 后端 | Python + FastAPI | 业务 API |
+| 数据库 | PostgreSQL | 业务数据 |
+| 向量检索 | pgvector | RAG |
+| 缓存/任务队列 | Redis | 异步任务 |
+| 后台任务 | RQ | 文档解析、Embedding 等 |
+| ORM | SQLAlchemy | 数据库操作 |
+| 数据迁移 | Alembic | 数据库版本管理 |
+| 文件解析 | python-docx、PyMuPDF | Word/PDF |
+| 文档生成 | python-docx | Word 输出 |
+| Agent | 自建轻量 Router/Worker | Agent 调度 |
+| Embedding | 云端 Embedding API | 文本向量化 |
+| LLM | 云端 API | 对话和推理 |
+| 部署 | Docker Compose | 服务部署 |
+| 反向代理 | Caddy | HTTPS 和访问入口 |
+
+注意：
+
+1. 不在 Mac mini 上运行大型语言模型。
+2. Agent 使用云端 API。
+3. 后端采用模块化单体，不要一开始拆成大量微服务。
+4. 后台文档解析和知识索引采用异步任务。
+5. Web 和未来 APP 共用同一套后端 API。
+6. 第一版优先保证数据结构和业务接口稳定。
+
+---
+
+# 六、数据库设计
+
+采用 PostgreSQL + pgvector。
+
+主要业务表如下。
+
+## 6.1 用户与组织
+
+- users
+- departments
+- user_departments
+- roles
+- user_roles
+- permissions
+- role_permissions
+
+## 6.2 活动项目
+
+- event_series
+- projects
+- project_departments
+- project_members
+
+projects 保存项目名称、年度、状态、所属活动系列、负责人、创建时间等。
+
+project_members 不设置复杂项目角色。
+
+## 6.3 对话与 Agent
+
+- conversations
+- messages
+- agent_runs
+- worker_runs
+- tool_calls
+- prompt_versions
+
+conversations 需要支持：
+- 全局对话
+- 项目内对话
+- 主对话标识
+- 对话标题
+- 创建者
+- 删除/归档状态
+
+messages 保存消息角色、正文、附件引用、时间和必要的结构化元数据。
+
+## 6.4 文件管理
+
+- files
+- document_versions
+- file_relations
+- file_processing_runs
+
+保留文件原件、版本、来源、创建者、所属项目和处理状态。
+
+## 6.5 知识库
+
+- knowledge
+- knowledge_sources
+- knowledge_tags
+- knowledge_tag_relations
+- document_chunks
+
+knowledge 保存结构化知识。
+
+knowledge_sources 记录知识来源，支持一个知识条目关联多个文件或对话。
+
+document_chunks 保存文本分块、Embedding 和原始文件位置。
+
+## 6.6 任务与通知
+
+- tasks
+- task_assignments
+- task_exchange_requests
+- task_history
+- notifications
+
+任务分配和任务历史必须独立记录，不能只在 tasks 中覆盖负责人。
+
+## 6.7 数据库设计要求
+
+- 重要业务表使用 UUID 主键。
+- 建立合理的外键和索引。
+- 业务删除优先采用软删除。
+- 关键操作保留历史记录。
+- 项目、文件、对话、任务之间建立明确关联。
+- 时间统一存储 UTC，前端根据用户时区显示。
+- 使用 Alembic 管理数据库迁移。
+- 不允许 Agent 绕过业务服务直接修改数据库。
+
+---
+
+# 七、推荐后端 API 模块
+
+建议采用 REST API，路径统一以 /api/v1 开头。
+
+主要模块：
+
+| 模块 | API 前缀 | 功能 |
+|---|---|---|
+| 认证 | /auth | 登录、登出、用户信息 |
+| 用户 | /users | 用户管理 |
+| 部门 | /departments | 部门管理 |
+| 项目 | /projects | 项目创建、查询、状态变更 |
+| 项目成员 | /projects/{id}/members | 成员添加、申请、审核 |
+| 对话 | /conversations | 对话创建、查询、修改 |
+| 消息 | /conversations/{id}/messages | 消息发送和历史记录 |
+| Agent | /agent | 对话执行和任务状态 |
+| 文件 | /files | 文件上传、下载、版本 |
+| 知识 | /knowledge | 知识查询、创建和归档 |
+| 任务 | /tasks | 任务创建、更新、查询 |
+| 任务交换 | /task-exchanges | 发起、接受、拒绝交换 |
+| 通知 | /notifications | 通知列表和已读状态 |
+| 工作流 | /workflows | 提示词和工作流版本管理 |
+
+Agent 调用的业务工具也通过这些业务服务实现。
+
+---
+
+# 八、前端设计要求
+
+## 8.1 桌面端
+
+优先实现完整桌面 Web 工作台。
+
+建议采用：
+
+- 左侧固定导航
+- 中间主要工作区
+- 右侧上下文面板
+
+风格建议：
+- 简洁、现代、专业
+- 以工作效率为核心
+- 避免过度装饰
+- 信息层级清晰
+- 对话和项目上下文容易切换
+- 任务状态清晰可见
+
+## 8.2 手机端
+
+后续采用 React Native + Expo。
+
+APP 不需要完整复刻桌面端。
+
+重点功能：
+- 我的任务
+- 任务状态更新
+- 通知
+- 任务交换
+- 活动进度
+- 文件和图片上传
+- 文字 AI 对话
+
+不开发独立语音识别，直接使用手机系统输入法的语音转文字。
+
+Web 与 APP 共用账号、权限、数据库和 API。
+
+---
+
+# 九、部署架构
+
+服务器：Mac mini M4，16GB 内存。
+
+推荐使用 Docker Compose。
+
+服务初步组成：
+
+1. frontend：Next.js
+2. backend：FastAPI
+3. worker：后台异步任务
+4. postgres：PostgreSQL + pgvector
+5. redis：任务队列和缓存
+6. caddy：反向代理和 HTTPS
+
+不要将每一个 Worker 单独部署成容器。Agent Worker 首版在同一个后端项目中作为模块运行，由统一调度器管理。
+
+推荐项目目录：
+
+```text
+ResearchUnion/
+├── frontend/
+│   ├── app/
+│   ├── components/
+│   ├── features/
+│   └── lib/
+├── backend/
+│   ├── api/
+│   ├── core/
+│   ├── models/
+│   ├── schemas/
+│   ├── services/
+│   ├── repositories/
+│   ├── agents/
+│   │   ├── router/
+│   │   ├── workers/
+│   │   ├── tools/
+│   │   └── workflows/
+│   ├── document/
+│   └── tasks/
+├── database/
+│   └── migrations/
+├── storage/
+│   ├── original/
+│   ├── projects/
+│   ├── outputs/
+│   ├── temporary/
+│   └── knowledge/
+├── logs/
+├── backups/
+├── docker-compose.yml
+└── README.md
+```
+
+公网访问建议通过 HTTPS 反向代理和安全隧道实现。
+
+数据库和文件存储不直接暴露公网。
+
+API Key 使用环境变量或安全配置管理，不得写入前端代码或提交到 Git。
+
+---
+
+# 十、Demo 开发范围与优先级
+
+不要一次开发全部功能。
+
+建议分为三个阶段。
+
+## 第一阶段：核心工作台 Demo
+
+目标：能够登录、聊天、创建项目、上传资料和管理任务。
+
+必须完成：
+
+1. 用户登录。
+2. 主席团、负责人、普通成员三种身份。
+3. 桌面端三栏工作台。
+4. 全局 AI 对话。
+5. 项目创建申请和负责人确认。
+6. 活动项目列表与详情。
+7. 项目主对话和多个主题对话。
+8. 项目成员管理。
+9. 文件上传和下载。
+10. 基础知识库检索。
+11. AI 调用云端大模型。
+12. 基础任务创建、分配和状态更新。
+
+Demo 可先使用少量测试账号和测试资料。
+
+## 第二阶段：Agent 与文档协作
+
+完成：
+
+1. Router/Worker 调度。
+2. 历史资料解析。
+3. RAG 检索。
+4. 知识自动提取。
+5. 活动策划案生成。
+6. Word 文档生成。
+7. 文档修改和版本管理。
+8. 任务自动拆分。
+9. 人员分配建议。
+10. 跨项目和跨对话信息检索。
+11. Agent 执行记录和状态展示。
+
+## 第三阶段：完整协作与移动端
+
+完成：
+
+1. 任务交换。
+2. 通知中心。
+3. 项目进度统计。
+4. 活动结束总结。
+5. 知识确认和归档。
+6. 工作流提示词管理。
+7. APP。
+8. 公网部署。
+9. 备份恢复。
+10. 系统性能和安全优化。
+
+---
+
+# 十一、Demo 验收标准
+
+开发 Agent 不应只生成静态页面或模拟聊天。
+
+第一版至少需要实现以下真实交互：
+
+### 1. 用户和权限
+- 不同身份能够登录。
+- 页面根据身份展示不同管理入口。
+- 后端接口能够校验权限。
+
+### 2. AI 对话
+- 用户可以真实调用云端模型。
+- 对话记录能够保存。
+- Agent 能识别当前全局或项目上下文。
+- Agent 执行状态能够展示。
+
+### 3. 项目管理
+- 普通成员可以提出项目创建申请。
+- 负责人可以确认并创建项目。
+- 项目状态可以变更。
+- 项目成员可以管理。
+- 一个项目可以创建多个对话。
+- 项目对话共享项目上下文。
+
+### 4. 文件和知识
+- 能上传 Word/PDF。
+- 能保存原始文件。
+- 能解析文本。
+- 能检索上传资料中的内容。
+- 检索结果能追溯来源。
+
+### 5. 任务
+- 能创建任务。
+- 能分配负责人。
+- 能更新状态。
+- 能查看个人任务。
+- 任务变更有历史记录。
+
+### 6. 系统可靠性
+- 服务重启后数据不丢失。
+- 文件和数据库有持久化存储。
+- API Key 不暴露给前端。
+- 有基础日志和错误处理。
+
+---
+
+# 十二、开发 Agent 的执行要求
+
+请按照以下方式开发：
+
+1. 先检查运行环境和项目目录。
+2. 输出项目架构和开发计划。
+3. 先完成数据库 ER 设计和迁移脚本。
+4. 再完成后端 API 和权限体系。
+5. 再完成前端工作台。
+6. 最后接入 Agent 和真实业务流程。
+7. 每完成一个模块就运行测试。
+8. 不要只输出代码片段，应创建完整、可运行的项目文件。
+9. 不要使用大量模拟数据冒充真实业务能力。
+10. 所有关键业务操作必须真实写入数据库。
+11. 提供 `.env.example`，不得提交真实 API Key。
+12. 提供 Docker Compose、启动说明和初始化脚本。
+13. 每个阶段输出已完成、未完成和待处理问题。
+14. 发现需求冲突时先提出问题，不要擅自改变已确定的业务规则。
+
+### Demo 阶段的开发原则
+
+- 优先保证核心业务闭环。
+- 优先保证数据库结构可扩展。
+- 优先保证 Agent 工具调用真实有效。
+- 优先保证文件和知识能够长期积累。
+- 不要为了展示效果牺牲数据真实性。
+- 不要过早引入微服务、复杂消息中间件和多 Agent 框架。
+- 不要把项目做成只有聊天窗口的 AI 套壳产品。
+
+最终目标是形成一个可以在 Mac mini 上运行、可通过浏览器访问、能够真实完成活动项目协作的 Demo。
+
+我认为没有必要从零开发整个系统。GitHub 上已经有一些比较成熟的开源项目，可以分别作为 AI Agent、知识库、文档协作和项目管理模块的参考。
+
+结合我们已经确定的研究生会 AI 工作台需求，我建议重点考察以下几类：
+
+1. AI 工作流与多 Agent 平台：参考它们如何组织 Agent、工具调用和工作流。
+2. 知识库与 RAG 系统：参考历史文件解析、知识检索、向量数据库和知识管理。
+3. AI 协作工作台：参考对话、文件、项目上下文和用户交互。
+4. 项目与任务管理系统：参考任务分配、成员协作、状态流转。
+
+最重要的是区分：哪些项目可以直接复用，哪些只适合借鉴架构。我们的目标不是把几个系统简单拼在一起，而是形成统一的数据和业务流程。
+对这些项目 做一次源码级调研，而不是马上开始写代码。
+
+思考下面几个问题
+1. 三个项目的核心架构和技术栈。
+2. 哪些模块可以直接复用，哪些只能参考。
+3. 哪些功能值得移植到我们的系统。
+4. 是否会与现有 FastAPI + Next.js 架构冲突。
+5. Mac mini M4 16GB 环境下的部署资源评估。
+6. 最终形成一份适合我们项目的技术选型报告。
+
+避免重复造轮子，也能避免为了复用开源项目而把系统架构搞得过于复杂。
+## 一、最值得参考的 6 个项目
+
+我筛选时主要考虑了几个条件：项目是否持续维护、是否支持自部署、架构是否值得借鉴，以及是否能适配我们的 Python + FastAPI + Next.js 技术路线。
+
+[Dify Workflow Studio - Design Agentic Workflows for Production](https://images.openai.com/static-rsc-4/iGNovxRvG2kQ_Wy2fozn-6ccMWdBuffpWDOSVWlqE3B9TIQthsVsrtnD5DMZ0HAh3x1x6fSGuLazOPadquc0Cj1P4M37NONJNeZ49seXM-rQUuTlDiPxnlwvuFNQgcs9lp9TzPmufZZALl0_sGHVQL-zaNTehUbNt7rcm5Ib12Q?purpose=inline)
+
+1\. Dify
+
+优先研究
+
+AI 工作流、Agent、RAG、模型管理
+
+GitHub：[langgenius/dify](https://github.com/langgenius/dify?utm_source=chatgpt.com)
+
+这是我最推荐先研究的项目。它把模型管理、知识库、RAG、Agent、工作流和运行监控整合在一个平台中。可以重点参考它的工作流编排、模型调用抽象和知识库处理流程。
+
+[image](https://www.google.com/s2/favicons?domain=https://github.com\&sz=32)
+
+GitHub
+
+
+
+[Easy Guide: Installing and Running RagFlow Locally with DeepSeek - An End-to-End Tutorial | AI Themes - Insights into AI & LLMs](https://images.openai.com/static-rsc-4/zoq0nILfVjEYJmmEpfqVZfN1j6MvXG6mwBK_20SByc1ocd8yzU5fMguMgtUNoAwsPzki0Ywubb09vhbSkAcMOvwTrqGwylxf3QeoI0frvmuXsvEikLKu8kqxt68GsxFI5zZzHN1FA8IGzx7iDOgpPBo68ou086dBWKqBMgYNiZE?purpose=inline)
+
+2\. RAGFlow
+
+优先研究
+
+文档解析、知识库、复杂 PDF、引用溯源
+
+GitHub：[infiniflow/ragflow](https://github.com/infiniflow/ragflow?utm_source=chatgpt.com)
+
+特别适合研究我们已有的历史策划案、总结和 PDF 资料如何入库。它比较值得借鉴的是文档版面理解、表格解析、OCR、分块和检索溯源。
+
+[image](https://www.google.com/s2/favicons?domain=https://opensaurus.org\&sz=32)
+
+Opensaurus
+
+
+
+[Multi-Agent LangGraph. Quick Start Guide to Multi-Agents | by Accelerated AI | Medium](https://images.openai.com/static-rsc-4/QzpBA2TBl6bB9WBcWmeTBFa2YZAtODfh27_6mHL5asJOB3m3lr3J5GFa8CQeoBy5lrM6v1WWEUbr0DILmdgrEMpk9Vvt6lg5WbgssM3DcPBf3mN0-dG_N92YNfaLkzHbfJJRzvKZvh9l9iCBe821XOLt83BWj-867u2I_JRffqg?purpose=inline)
+
+3\. LangGraph
+
+优先研究
+
+Router/Worker、多 Agent、状态管理、人工确认
+
+GitHub：[langchain-ai/langgraph](https://github.com/langchain-ai/langgraph?utm_source=chatgpt.com)
+
+它不是完整工作台，而是 Agent 的编排框架。适合实现我们讨论的主 Agent Router、Knowledge Worker、Planning Worker、Document Worker 和 Task Worker。尤其值得参考长流程状态保存、暂停和人工确认机制。
+
+[Self Hosted | Plane](https://images.openai.com/static-rsc-4/S09ubGO7K5ffJyf2jPZxTECaKX8loYGzrZgutD8uuy0vE9gPVQv1Pp0G2SndLaHI5_P4sENF8tUPtq3WMIrzQQCxUykwzIlKo2rRBrC5CLn-88me6JrcsifQZxGR8VvWp096LTvLzMUVsvs_AxizTkGVl2hALr4LyZf0pQZFMZ8?purpose=inline)
+
+4\. Plane
+
+优先研究
+
+项目、任务、优先级、状态、成员协作
+
+GitHub：[makeplane/plane](https://github.com/makeplane/plane?utm_source=chatgpt.com)
+
+适合参考活动项目和任务中心的前端交互、任务状态、优先级、附件、项目视图等。它已经有比较完整的项目管理产品形态。
+
+[image](https://www.google.com/s2/favicons?domain=https://plane.so\&sz=32)
+
+Plane
+
+
+
+[基于Ollama+AnythingLLM搭建本地私有知识库系统-CSDN博客](https://images.openai.com/static-rsc-4/g2cYw5cLmCaIACtW7VAcF7OuvJQwOnnT4t-Hsm8qyK3VabGRr5wOkOvAnbC_3IKJNK3_xVjr37ZCjXcM7hAsCD9vpsYM8a0MV3fiMxrkwh76jgA-ycSR_jtluumX_V3XPTnp3dzgeyBND7Wh-NlqUs2XTFpmG84QdSOVwB4ne9w?purpose=inline)
+
+5\. AnythingLLM
+
+工作空间、文档上传、知识库问答、模型接入
+
+GitHub：[Mintplex-Labs/anything-llm](https://github.com/Mintplex-Labs/anything-llm?utm_source=chatgpt.com)
+
+可以参考它如何将文档、工作空间、聊天和模型配置结合起来。尤其适合观察一个普通用户如何上传文件并立即通过对话使用这些资料。
+
+[Dave does AI #1 - Self-hosted AI using Ollama + Open WebUI](https://images.openai.com/static-rsc-4/EKmechcR7JjKTJfpUzqeUuwJx6q-jREwX2OY4YmWts5YOUXdOHEEeHY3Y2ogSfhZSFeO2s53bYbWRmuA6ifs6_T2m7GuT1ZgOC-JO0JHV9Sz_rGRURyeTnE8EgOoLsoIHtwVW5WROqUesHWzXXIlElhlXNy5T5-nwlDOg4_b7TQ?purpose=inline)
+
+6\. Open WebUI
+
+聊天界面、模型接入、用户管理、工具和知识库
+
+GitHub：[open-webui/open-webui](https://github.com/open-webui/open-webui?utm_source=chatgpt.com)
+
+适合参考 AI 聊天界面、模型接入、对话历史和用户交互。它更偏通用 AI 聊天平台，不具备我们需要的完整活动项目业务逻辑。
+
+## 二、这些项目分别能解决什么问题？
+
+| 项目          | 最值得借鉴的模块           | 是否建议直接复用          |
+| ----------- | ------------------ | ----------------- |
+| Dify        | 工作流、模型管理、RAG、Agent | 可以独立部署并通过 API 集成  |
+| RAGFlow     | 文档解析、知识库           | 可以作为独立文档/RAG 服务   |
+| LangGraph   | Agent 调度和状态管理      | 可以作为后端开发框架        |
+| Plane       | 项目和任务管理 UI         | 可以参考 UI，也可以评估二次开发 |
+| AnythingLLM | 工作空间和文档聊天          | 适合参考产品交互          |
+| Open WebUI  | AI 对话界面            | 适合参考，不建议直接作为主系统   |
+
+## 三、我建议采用的组合方式
+
+这几个项目不应该全部安装到 Mac mini 上。16GB 内存需要控制服务数量，而且我们的业务数据必须由自己的系统统一管理。
+
+我更推荐下面这套组合：
+
+## 研究生会 AI 工作台推荐架构
+
+自研前端工作台
+
+Next.js + TypeScript
+
+聊天 / 项目 / 文件 / 知识库 / 任务 / 用户管理
+
+自研 FastAPI 后端
+
+统一业务 API、身份权限、数据管理
+
+LangGraph
+
+Agent 调度与 Worker 编排
+
+RAGFlow（可选）
+
+复杂文档解析与检索
+
+统一数据层
+
+PostgreSQL + pgvector + Redis + 文件存储
+
+云端 LLM / Embedding API
+
+这里有几个关键取舍：
+
+- LangGraph 可以直接成为 Agent 层的技术基础，不需要自己从头实现所有状态流转和人工确认逻辑。
+- Dify 不一定要部署。如果使用 LangGraph 自己实现工作流，Dify 更适合作为工作流设计参考。若希望快速搭建可视化工作流，也可以选择 Dify，但不要让两套系统同时管理业务状态。
+- RAGFlow 先作为候选组件。如果历史 Word、PDF、扫描件的解析效果不理想，再将其作为独立服务接入。普通文档首版可以直接用 Python 解析。
+- Plane 不建议直接作为主业务系统。我们的活动项目、任务交换、知识积累和 Agent 操作高度关联，自己掌握数据库和业务流程更合适。
+
+## 四、还有两个值得关注的项目
+
+- n8n：[n8n-io/n8n](https://github.com/n8n-io/n8n?utm_source=chatgpt.com)。适合参考通知、定时任务、跨系统自动化，但它采用 Sustainable Use License，并非标准宽松开源许可。
+
+  [image](https://www.google.com/s2/favicons?domain=https://buildhaus.ai\&sz=32)
+
+  BuildHaus
+
+- OpenProject：[opf/openproject](https://github.com/opf/openproject?utm_source=chatgpt.com)。项目管理功能非常成熟，但整体偏传统项目管理，架构和技术栈也与我们的方案差异较大。
+
+  [image](https://www.google.com/s2/favicons?domain=https://github.com\&sz=32)
+
+  GitHub
+
+
+
+另外，Flowise 虽然过去很适合可视化搭建 Agent，但其官网目前已经发布停止维护的公告，因此不建议作为新项目的技术基础。
+
+[image](https://www.google.com/s2/favicons?domain=https://flowiseai.com\&sz=32)
+
+Build AI Agents, Visually
+
+
+
+## 五、最终建议：开发前重点研究这三个仓库
+
+第一优先级：Dify
+
+研究产品架构
+
+研究它的模型管理、工作流、RAG、工具调用和执行监控。
+
+重点：平台功能如何组织，而不是直接复制全部代码。
+
+第二优先级：LangGraph
+
+研究 Agent 实现
+
+研究 Router、Worker、状态管理、人工确认和执行恢复。
+
+重点：如何将我们的 Agent 设计真正实现为可运行的工作流。
+
+第三优先级：Plane
+
+研究产品交互
+
+研究项目空间、任务卡片、成员协作和项目进度视图。
+
+重点：如何设计清晰、易用的项目协作界面。
+
+我的核心建议：不要直接 Fork 某一个项目，把它改成研究生会系统。 更合理的做法是以自研业务系统为主体，吸收成熟项目的能力。这样才能保留我们已经确定的知识库、项目对话、文档协作、任务分配和经验沉淀之间的统一关系。
+
+还有一点：正式开发前要逐一核查仓库的 LICENSE、第三方依赖许可和商业使用限制，特别是 Dify、Plane 等有不同版本或附加许可条款的项目。

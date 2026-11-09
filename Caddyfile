@@ -1,0 +1,26 @@
+:80 {
+	encode zstd gzip
+
+	handle /docs* {
+		reverse_proxy backend:8000
+	}
+	handle /openapi.json {
+		reverse_proxy backend:8000
+	}
+	handle /health {
+		reverse_proxy backend:8000
+	}
+
+	handle {
+		reverse_proxy frontend:3000
+	}
+}
+
+# 公网部署时把 :80 换成你的域名，Caddy 会自动申请 HTTPS 证书：
+# example.com {
+#     encode zstd gzip
+#     handle /docs* { reverse_proxy backend:8000 }
+#     handle /openapi.json { reverse_proxy backend:8000 }
+#     handle /health { reverse_proxy backend:8000 }
+#     handle { reverse_proxy frontend:3000 }
+# }
