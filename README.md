@@ -4,7 +4,7 @@
 ![FastAPI](https://img.shields.io/badge/FastAPI-Python%203.13-009688?logo=fastapi)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17%20%2B%20pgvector-336791?logo=postgresql)
 ![Redis](https://img.shields.io/badge/Redis-RQ-DC382D?logo=redis)
-![License](https://img.shields.io/badge/license-TBD-lightgrey)
+![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
 
 > 仓库：<https://github.com/Amaterasu-kura/research-union-workbench>
 > 当前状态：Phase 1 核心闭环已完成（AI 对话需配置云端模型 Key）。
@@ -364,7 +364,9 @@ make lint    # ruff + tsc
 
 ## 13. 许可与贡献
 
-本仓库目前**暂未指定开源许可证**，代码与文档默认保留所有权利。如果计划复用、分发或用于其他组织，请先补充 `LICENSE` 或联系维护者。
+本项目采用 [MIT License](LICENSE) 开源。
+
+你可以自由使用、复制、修改、合并、发布、分发、再许可和/或销售本软件的副本，但需在副本或重要部分中保留上述版权声明与许可声明。本软件按「原样」提供，不附带任何明示或暗示的担保。
 
 欢迎提交 Issue / Pull Request：
 

@@ -2,6 +2,7 @@
 name = "research-union-backend"
 version = "0.1.0"
 description = "研究生会 AI 协同工作台后端"
+license = "MIT"
 requires-python = ">=3.13,<3.14"
 dependencies = [
     "fastapi>=0.116.0,<1.0.0",
